@@ -36,6 +36,61 @@ A full-stack recipe discovery app. Users pick ingredients they have on hand, and
 **i18n**
 - Custom translation system, English + Portuguese
 
+  ---
+
+## Architectural decisions
+
+### State separation: server state, client state, delivery
+
+Rather than reaching for a single monolithic store (Redux, etc.), state is split by what it actually is:
+
+- **Server state** (ingredients, favorites, user profile) lives in TanStack Query. It's already remote, needs caching, retries, invalidation.
+- **Client state** (auth token) lives in a Zustand store, persisted to localStorage so sessions survive refreshes.
+- **Delivery mechanisms** (theme, language) use Context — cross-cutting concerns that don't need reactivity beyond "value changes → re-render".
+
+### ID-based JWT subject
+
+The JWT subject is the user's numeric ID
+
+### Optimistic updates with race handling
+
+Favoriting ingredients uses optimistic updates via TanStack Query's `onMutate`/`onError`/`onSettled`. `cancelQueries` prevents in-flight background refetches from overwriting the optimistic value. The backend enforces uniqueness via a DB constraint; the API layer swallows `DataIntegrityViolationException` so double-clicks or concurrent requests still converge on the desired state without leaking errors to the user.
+
+### Feature-based folder structure
+
+```
+src/features/
+├── auth/          (login, register, JWT store, guards)
+├── ingredients/   (list, filter, favorites)
+├── recipes/       (search, results modal)
+└── user/          (profile, forms, mutations)
+```
+
+Each feature owns its components, hooks, and mutations.
+
+### Feature extraction over inline logic
+
+Pure logic (filter functions, validation, token expiry checks) is extracted from components into standalone modules. Makes them testable in isolation and reusable. Example: `filterIngredients(ingredients, search, foodType, language)` is a pure function tested with Vitest without rendering any components.
+
+### Auth guards via TanStack Router `beforeLoad`
+
+Route protection runs before the route mounts — `beforeLoad` reads the token from the persisted store, checks expiry, and redirects if invalid. Both directions: authenticated routes redirect to login, and the login route redirects authenticated users to the app. No flash of protected content.
+
+### i18n with structural type safety
+
+Translation objects for each language use `satisfies` in TypeScript to enforce structural equality — adding a key to one language forces adding it to all others at compile time. No runtime missing-key surprises.
+
+### Bilingual search
+
+Ingredient search matches against both the English and the currently-active language's translation. A Portuguese user typing "frango" and an English user typing "chicken" both find the same ingredient. Data flowing to the recipe API stays English (Spoonacular's language), only display changes.
+
+### Rate limiting on the backend
+
+Auth endpoints (`/auth/login`, `/auth/register`) are rate-limited via Bucket4j: 5 requests per minute per IP. Protects against brute-force attempts without adding user friction. Documented as in-memory (single-instance) with the production upgrade path being Redis-backed buckets for horizontal scaling.
+
+---
+
+
 ## Testing
 
 **Unit** (Vitest)
