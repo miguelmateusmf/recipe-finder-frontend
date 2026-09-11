@@ -5,8 +5,6 @@ A full-stack recipe discovery app. Users pick ingredients they have on hand, and
 **Live app:** [https://recipe-finder.recipes](https://recipe-finder.recipes)
 **Backend repo:** [recipe-finder-backend](https://github.com/miguelmateusmf/recipe-finder-backend)
 
-Built as a portfolio piece to demonstrate frontend architecture, testing principles, and production deployment on AWS.
-
 ---
 
 ## Stack
