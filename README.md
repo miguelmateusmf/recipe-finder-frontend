@@ -42,8 +42,6 @@ A full-stack recipe discovery app. Users pick ingredients they have on hand, and
 
 ### State separation: server state, client state, delivery
 
-Rather than reaching for a single monolithic store (Redux, etc.), state is split by what it actually is:
-
 - **Server state** (ingredients, favorites, user profile) lives in TanStack Query. It's already remote, needs caching, retries, invalidation.
 - **Client state** (auth token) lives in a Zustand store, persisted to localStorage so sessions survive refreshes.
 - **Delivery mechanisms** (theme, language) use Context — cross-cutting concerns that don't need reactivity beyond "value changes → re-render".
